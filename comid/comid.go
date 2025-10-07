@@ -244,6 +244,19 @@ func (o *Comid) AddDevIdentityKey(val *KeyTriple) *Comid {
 
 // AddCondEndorseSeries adds the supplied conditional series triple to the
 // conditional series triple list of the target Comid.
+func (o *Comid) AddDomainMembershipTriple(val *DomainMembershipTriple) *Comid {
+	if o != nil {
+		if o.Triples.DomainMembershipTriples == nil {
+			o.Triples.DomainMembershipTriples = NewDomainMembershipTriples()
+		}
+
+		if o.Triples.AddDomainMembershipTriple(val) == nil {
+			return nil
+		}
+	}
+	return o
+}
+
 func (o *Comid) AddCondEndorseSeries(val *CondEndorseSeriesTriple) *Comid {
 	if o != nil {
 		if o.Triples.CondEndorseSeries == nil {

@@ -11,11 +11,12 @@ import (
 )
 
 type Triples struct {
-	ReferenceValues   *ValueTriples             `cbor:"0,keyasint,omitempty" json:"reference-values,omitempty"`
-	EndorsedValues    *ValueTriples             `cbor:"1,keyasint,omitempty" json:"endorsed-values,omitempty"`
-	DevIdentityKeys   *KeyTriples               `cbor:"2,keyasint,omitempty" json:"dev-identity-keys,omitempty"`
-	AttestVerifKeys   *KeyTriples               `cbor:"3,keyasint,omitempty" json:"attester-verification-keys,omitempty"`
-	CondEndorseSeries *CondEndorseSeriesTriples `cbor:"8,keyasint,omitempty" json:"conditional-endorsement-series,omitempty"`
+	ReferenceValues         *ValueTriples             `cbor:"0,keyasint,omitempty" json:"reference-values,omitempty"`
+	EndorsedValues          *ValueTriples             `cbor:"1,keyasint,omitempty" json:"endorsed-values,omitempty"`
+	DevIdentityKeys         *KeyTriples               `cbor:"2,keyasint,omitempty" json:"dev-identity-keys,omitempty"`
+	AttestVerifKeys         *KeyTriples               `cbor:"3,keyasint,omitempty" json:"attester-verification-keys,omitempty"`
+	DomainMembershipTriples *DomainMembershipTriples  `cbor:"5,keyasint,omitempty" json:"domain-membership-triples,omitempty"`
+	CondEndorseSeries       *CondEndorseSeriesTriples `cbor:"8,keyasint,omitempty" json:"conditional-endorsement-series,omitempty"`
 	Extensions
 }
 
@@ -147,6 +148,7 @@ func (o Triples) Valid() error {
 		(o.EndorsedValues == nil || o.EndorsedValues.IsEmpty()) &&
 		(o.AttestVerifKeys == nil || len(*o.AttestVerifKeys) == 0) &&
 		(o.DevIdentityKeys == nil || len(*o.DevIdentityKeys) == 0) &&
+		(o.DomainMembershipTriples == nil || len(*o.DomainMembershipTriples) == 0) &&
 		(o.CondEndorseSeries == nil || o.CondEndorseSeries.IsEmpty()) {
 		return fmt.Errorf("triples struct must not be empty")
 	}
@@ -176,6 +178,12 @@ func (o Triples) Valid() error {
 			if err := dk.Valid(); err != nil {
 				return fmt.Errorf("device identity key at index %d: %w", i, err)
 			}
+		}
+	}
+
+	if o.DomainMembershipTriples != nil {
+		if err := o.DomainMembershipTriples.Valid(); err != nil {
+			return fmt.Errorf("domain membership triples: %w", err)
 		}
 	}
 
@@ -223,6 +231,19 @@ func (o *Triples) AddAttestVerifKey(val *KeyTriple) *Triples {
 func (o *Triples) AddDevIdentityKey(val *KeyTriple) *Triples {
 	if o != nil {
 		*o.DevIdentityKeys = append(*o.DevIdentityKeys, *val)
+	}
+
+	return o
+}
+
+// nolint:gocritic
+func (o *Triples) AddDomainMembershipTriple(val *DomainMembershipTriple) *Triples {
+	if o != nil {
+		if o.DomainMembershipTriples == nil {
+			o.DomainMembershipTriples = new(DomainMembershipTriples)
+		}
+
+		o.DomainMembershipTriples.Add(val)
 	}
 
 	return o
