@@ -242,15 +242,15 @@ func (o *Comid) AddDevIdentityKey(val *KeyTriple) *Comid {
 	return o
 }
 
-// AddMembershipTriple adds the supplied membership triple to the
+// AddDomainMembershipTriple adds the supplied domain membership triple to the
 // membership-triples list of the target Comid.
-func (o *Comid) AddMembershipTriple(val *MembershipTriple) *Comid {
+func (o *Comid) AddDomainMembershipTriple(val *DomainMembershipTriple) *Comid {
 	if o != nil {
-		if o.Triples.MembershipTriples == nil {
-			o.Triples.MembershipTriples = NewMembershipTriples()
+		if o.Triples.DomainMembershipTriples == nil {
+			o.Triples.DomainMembershipTriples = NewDomainMembershipTriples()
 		}
 
-		if o.Triples.AddMembershipTriple(val) == nil {
+		if o.Triples.AddDomainMembershipTriple(val) == nil {
 			return nil
 		}
 	}

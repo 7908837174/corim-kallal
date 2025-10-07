@@ -11,12 +11,12 @@ import (
 )
 
 type Triples struct {
-	ReferenceValues   *ValueTriples             `cbor:"0,keyasint,omitempty" json:"reference-values,omitempty"`
-	EndorsedValues    *ValueTriples             `cbor:"1,keyasint,omitempty" json:"endorsed-values,omitempty"`
-	DevIdentityKeys   *KeyTriples               `cbor:"2,keyasint,omitempty" json:"dev-identity-keys,omitempty"`
-	AttestVerifKeys   *KeyTriples               `cbor:"3,keyasint,omitempty" json:"attester-verification-keys,omitempty"`
-	MembershipTriples *MembershipTriples        `cbor:"4,keyasint,omitempty" json:"membership-triples,omitempty"`
-	CondEndorseSeries *CondEndorseSeriesTriples `cbor:"8,keyasint,omitempty" json:"conditional-endorsement-series,omitempty"`
+	ReferenceValues         *ValueTriples             `cbor:"0,keyasint,omitempty" json:"reference-values,omitempty"`
+	EndorsedValues          *ValueTriples             `cbor:"1,keyasint,omitempty" json:"endorsed-values,omitempty"`
+	DevIdentityKeys         *KeyTriples               `cbor:"2,keyasint,omitempty" json:"dev-identity-keys,omitempty"`
+	AttestVerifKeys         *KeyTriples               `cbor:"3,keyasint,omitempty" json:"attester-verification-keys,omitempty"`
+	DomainMembershipTriples *DomainMembershipTriples  `cbor:"5,keyasint,omitempty" json:"membership-triples,omitempty"`
+	CondEndorseSeries       *CondEndorseSeriesTriples `cbor:"8,keyasint,omitempty" json:"conditional-endorsement-series,omitempty"`
 	Extensions
 }
 
@@ -25,7 +25,6 @@ func (o *Triples) RegisterExtensions(exts extensions.Map) error {
 	refValExts := extensions.NewMap()
 	endValExts := extensions.NewMap()
 	conSeriesExts := extensions.NewMap()
-	membershipExts := extensions.NewMap()
 
 	for p, v := range exts {
 		switch p {
@@ -43,8 +42,6 @@ func (o *Triples) RegisterExtensions(exts extensions.Map) error {
 			conSeriesExts[ExtMval] = v
 		case ExtCondEndorseSeriesValueFlags:
 			conSeriesExts[ExtFlags] = v
-		case ExtMembershipTriple:
-			membershipExts[ExtMemberVal] = v
 		default:
 			return fmt.Errorf("%w: %q", extensions.ErrUnexpectedPoint, p)
 		}
@@ -80,16 +77,6 @@ func (o *Triples) RegisterExtensions(exts extensions.Map) error {
 		}
 	}
 
-	if len(membershipExts) != 0 {
-		if o.MembershipTriples == nil {
-			o.MembershipTriples = NewMembershipTriples()
-		}
-
-		if err := o.MembershipTriples.RegisterExtensions(membershipExts); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -119,8 +106,8 @@ func (o Triples) MarshalCBOR() ([]byte, error) {
 		o.EndorsedValues = nil
 	}
 
-	if o.MembershipTriples != nil && o.MembershipTriples.IsEmpty() {
-		o.MembershipTriples = nil
+	if o.DomainMembershipTriples != nil && o.DomainMembershipTriples.IsEmpty() {
+		o.DomainMembershipTriples = nil
 	}
 
 	if o.CondEndorseSeries != nil && o.CondEndorseSeries.IsEmpty() {
@@ -165,7 +152,7 @@ func (o Triples) Valid() error {
 		(o.EndorsedValues == nil || o.EndorsedValues.IsEmpty()) &&
 		(o.AttestVerifKeys == nil || len(*o.AttestVerifKeys) == 0) &&
 		(o.DevIdentityKeys == nil || len(*o.DevIdentityKeys) == 0) &&
-		(o.MembershipTriples == nil || o.MembershipTriples.IsEmpty()) &&
+		(o.DomainMembershipTriples == nil || o.DomainMembershipTriples.IsEmpty()) &&
 		(o.CondEndorseSeries == nil || o.CondEndorseSeries.IsEmpty()) {
 		return fmt.Errorf("triples struct must not be empty")
 	}
@@ -198,9 +185,9 @@ func (o Triples) Valid() error {
 		}
 	}
 
-	if o.MembershipTriples != nil {
-		if err := o.MembershipTriples.Valid(); err != nil {
-			return fmt.Errorf("membership triples: %w", err)
+	if o.DomainMembershipTriples != nil {
+		if err := o.DomainMembershipTriples.Valid(); err != nil {
+			return fmt.Errorf("domain membership triples: %w", err)
 		}
 	}
 
@@ -253,13 +240,13 @@ func (o *Triples) AddDevIdentityKey(val *KeyTriple) *Triples {
 	return o
 }
 
-func (o *Triples) AddMembershipTriple(val *MembershipTriple) *Triples {
+func (o *Triples) AddDomainMembershipTriple(val *DomainMembershipTriple) *Triples {
 	if o != nil {
-		if o.MembershipTriples == nil {
-			o.MembershipTriples = new(MembershipTriples)
+		if o.DomainMembershipTriples == nil {
+			o.DomainMembershipTriples = new(DomainMembershipTriples)
 		}
 
-		o.MembershipTriples.Add(val)
+		o.DomainMembershipTriples.Add(val)
 	}
 
 	return o

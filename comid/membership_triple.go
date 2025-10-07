@@ -6,85 +6,70 @@ package comid
 import (
 	"errors"
 	"fmt"
-
-	"github.com/veraison/corim/extensions"
 )
 
-// MembershipTriple relates membership information to a target environment,
-// essentially forming a subject-predicate-object triple of "memberships-pertain
-// to-environment". This structure is used to represent membership-triple-record
-// in the CoRIM spec.
-type MembershipTriple struct {
-	_           struct{}    `cbor:",toarray"`
-	Environment Environment `json:"environment"`
-	Memberships Memberships `json:"memberships"`
+// DomainMembershipTriple represents a domain membership triple record as
+// specified in the CoRIM specification. It links a domain identifier to its
+// member environments, forming a subject-predicate-object triple where the
+// domain-id is the subject and the members array contains the objects.
+// This enables describing the topological structure of composite attesters.
+type DomainMembershipTriple struct {
+	_        struct{}      `cbor:",toarray"`
+	DomainID Environment   `json:"domain-id"`
+	Members  []Environment `json:"members"`
 }
 
-func (o *MembershipTriple) RegisterExtensions(exts extensions.Map) error {
-	return o.Memberships.RegisterExtensions(exts)
-}
-
-func (o *MembershipTriple) GetExtensions() extensions.IMapValue {
-	return o.Memberships.GetExtensions()
-}
-
-func (o *MembershipTriple) Valid() error {
-	if err := o.Environment.Valid(); err != nil {
-		return fmt.Errorf("environment validation failed: %w", err)
+// Valid validates the domain membership triple according to CoRIM specification
+func (o *DomainMembershipTriple) Valid() error {
+	if err := o.DomainID.Valid(); err != nil {
+		return fmt.Errorf("domain-id validation failed: %w", err)
 	}
 
-	if o.Memberships.IsEmpty() {
-		return errors.New("memberships validation failed: no membership entries")
+	if len(o.Members) == 0 {
+		return errors.New("members validation failed: no member environments")
 	}
 
-	if err := o.Memberships.Valid(); err != nil {
-		return fmt.Errorf("memberships validation failed: %w", err)
+	for i, member := range o.Members {
+		if err := member.Valid(); err != nil {
+			return fmt.Errorf("members validation failed: member at index %d: %w", i, err)
+		}
 	}
 
 	return nil
 }
 
-// MembershipTriples is a container for MembershipTriple instances and their extensions.
-// It is a thin wrapper around extensions.Collection.
-type MembershipTriples extensions.Collection[MembershipTriple, *MembershipTriple]
-
-func NewMembershipTriples() *MembershipTriples {
-	return (*MembershipTriples)(extensions.NewCollection[MembershipTriple]())
+// AddMember adds a member environment to the domain membership triple
+func (o *DomainMembershipTriple) AddMember(env Environment) *DomainMembershipTriple {
+	if o != nil {
+		o.Members = append(o.Members, env)
+	}
+	return o
 }
 
-func (o *MembershipTriples) RegisterExtensions(exts extensions.Map) error {
-	return (*extensions.Collection[MembershipTriple, *MembershipTriple])(o).RegisterExtensions(exts)
+// DomainMembershipTriples is a container for DomainMembershipTriple instances.
+// It represents the membership-triples array in the CoRIM specification.
+type DomainMembershipTriples []DomainMembershipTriple
+
+func NewDomainMembershipTriples() *DomainMembershipTriples {
+	return &DomainMembershipTriples{}
 }
 
-func (o *MembershipTriples) GetExtensions() extensions.IMapValue {
-	return (*extensions.Collection[MembershipTriple, *MembershipTriple])(o).GetExtensions()
+func (o *DomainMembershipTriples) Valid() error {
+	for i, triple := range *o {
+		if err := triple.Valid(); err != nil {
+			return fmt.Errorf("domain membership triple at index %d: %w", i, err)
+		}
+	}
+	return nil
 }
 
-func (o *MembershipTriples) Valid() error {
-	return (*extensions.Collection[MembershipTriple, *MembershipTriple])(o).Valid()
+func (o *DomainMembershipTriples) IsEmpty() bool {
+	return len(*o) == 0
 }
 
-func (o *MembershipTriples) IsEmpty() bool {
-	return (*extensions.Collection[MembershipTriple, *MembershipTriple])(o).IsEmpty()
-}
-
-func (o *MembershipTriples) Add(val *MembershipTriple) *MembershipTriples {
-	ret := (*extensions.Collection[MembershipTriple, *MembershipTriple])(o).Add(val)
-	return (*MembershipTriples)(ret)
-}
-
-func (o *MembershipTriples) MarshalCBOR() ([]byte, error) {
-	return (*extensions.Collection[MembershipTriple, *MembershipTriple])(o).MarshalCBOR()
-}
-
-func (o *MembershipTriples) UnmarshalCBOR(data []byte) error {
-	return (*extensions.Collection[MembershipTriple, *MembershipTriple])(o).UnmarshalCBOR(data)
-}
-
-func (o *MembershipTriples) MarshalJSON() ([]byte, error) {
-	return (*extensions.Collection[MembershipTriple, *MembershipTriple])(o).MarshalJSON()
-}
-
-func (o *MembershipTriples) UnmarshalJSON(data []byte) error {
-	return (*extensions.Collection[MembershipTriple, *MembershipTriple])(o).UnmarshalJSON(data)
+func (o *DomainMembershipTriples) Add(val *DomainMembershipTriple) *DomainMembershipTriples {
+	if o != nil && val != nil {
+		*o = append(*o, *val)
+	}
+	return o
 }
